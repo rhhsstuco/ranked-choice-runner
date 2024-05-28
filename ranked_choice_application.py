@@ -2,6 +2,7 @@ from collections import deque
 from collections.abc import Mapping
 
 from ballot_reader import BallotReader
+from metadata_reader import MetadataReader
 from ranked_choice_display import RankedChoiceDisplay
 from ranked_choice_runner import RankedChoiceRunner
 
@@ -14,14 +15,14 @@ def _exhaust(generator):
 
 class RankedChoiceApplication:
     def __init__(self, *,
-                 metadata: ElectionMetadata,
+                 metadata: str,
                  candidates_running: int,
                  ballot_size: int,
                  candidates_required=1,
                  threshold=0.5,
                  display_delay=1
                  ):
-        self.metadata = metadata
+        self.metadata = MetadataReader(metadata).read()
         self.candidates_running = candidates_running
         self.ballot_size = ballot_size
         self.candidates_required = candidates_required

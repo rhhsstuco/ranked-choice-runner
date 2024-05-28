@@ -14,6 +14,6 @@ class BallotReader:
             # skip the headers
             next(reader, None)
 
-            ballots = [row for row in reader]
+            ballots = [tuple(row) for row in reader]
             return ballots
 
