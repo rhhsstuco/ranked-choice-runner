@@ -1,0 +1,122 @@
+from collections import defaultdict
+from collections.abc import Set
+
+from custom_types import Ballot, VoteDict
+
+
+def _select_removable_candidates(votes: VoteDict) -> Set[str]:
+    min_votes = min([len(ballots) for _, ballots in votes.items()])
+
+    eliminated_candidates = set()
+
+    for candidate, ballots in votes.items():
+        if len(ballots) == min_votes:
+            eliminated_candidates.add(candidate)
+
+    return eliminated_candidates
+
+
+class RankedChoiceRunner:
+    def __init__(self, data: list[Ballot], *, candidates_running, ballot_size, candidates_required=1, threshold=0.5):
+        if not data:
+            raise ValueError("Invalid or empty ballot list.")
+
+        if candidates_required > len(data[0]):
+            raise ValueError("Number of required candidates exceed number of available candidates. ")
+
+        self.data = data
+        self.majority = int(len(self.data) * threshold) + 1
+        self.eliminated: set[str] = set()
+        self.candidates_running = candidates_running
+        self.ballot_size = ballot_size
+        self.candidates_required = candidates_required
+        self.winners: set[str] = set()
+
+    def get_num_ballots(self):
+        return len(self.data)
+
+    def run_election(self):
+        for _ in range(self.candidates_required):
+            votes: VoteDict = defaultdict(list)
+
+            for ballot in self.data:
+                votes[ballot[0]].append(ballot)
+
+            self.eliminated.clear()
+            self._transfer_votes(votes, self.winners)
+
+            for eliminated_candidate in self.winners:
+                del votes[eliminated_candidate]
+
+            yield self._runoff_generator(votes)
+
+    def reset(self):
+        self.eliminated = set()
+        self.winners = set()
+
+    def _runoff_generator(self, votes: VoteDict):
+        yield votes
+
+        has_majority = [len(ballots) > self.majority for _, ballots in votes.items()]
+
+        while not any(has_majority):
+            eliminated_candidates = _select_removable_candidates(votes)
+
+            self._transfer_votes(votes, eliminated_candidates)
+
+            for eliminated_candidate in eliminated_candidates:
+                del votes[eliminated_candidate]
+
+            has_majority = [len(ballots) > self.majority for _, ballots in votes.items()]
+
+            yield votes
+
+        majority_list = [(candidate, ballots) for candidate, ballots in votes.items() if len(ballots) > self.majority]
+        max_ballots = max([len(ballots) for _, ballots in majority_list])
+        winner_list = [candidate for candidate, ballots in majority_list if len(ballots) == max_ballots]
+
+        num_winners = len(winner_list)
+
+        if num_winners == 0:
+            raise ValueError("No winners. TODO: maybe fix this if possible.")
+        elif num_winners == 1:
+            self.winners.add(winner_list[0])
+        else:
+            self.winners.add(self._run_tiebreaker(winner_list, votes))
+
+    def _transfer_votes(self, votes: VoteDict, eliminated_candidates: Set[str]):
+        self.eliminated.update(eliminated_candidates)
+
+        for candidate in eliminated_candidates:
+            transferred_ballots = votes[candidate]
+
+            for ballot in transferred_ballots:
+                for choice in ballot:
+                    if choice not in self.eliminated:
+                        votes[choice].append(ballot)
+                        break
+
+    def _run_tiebreaker(self, winner_list: list[str], votes: VoteDict):
+        tiebreaker_dict: defaultdict[str, int] = defaultdict(int)
+
+        for winner in winner_list:
+            ballots = votes[winner]
+
+            for ballot in ballots:
+                winner_index = ballot.index(winner)
+
+                # TODO: maybe remove this (this shouldn't happen)
+                if winner_index == -1:
+                    continue
+
+                tiebreaker_dict[winner] += (self.ballot_size - winner_index)
+
+        max_points = max([point for point in tiebreaker_dict.values()])
+        point_winners = [candidate for candidate, points in tiebreaker_dict.items() if points == max_points]
+
+        if len(point_winners) == 1:
+            return point_winners[0]
+        else:
+            print(tiebreaker_dict)
+            raise RuntimeError("The point tiebreaker system determines multiple winners. Please consult the election "
+                               "committee.")
