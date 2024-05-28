@@ -8,6 +8,7 @@ def main():
         candidates_required=2,
         ballot_size=4,
         threshold=0.5,
+        display_delay=0.75
     )
 
     application.run()

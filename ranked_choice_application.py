@@ -18,9 +18,9 @@ class RankedChoiceApplication:
                  metadata: str,
                  candidates_running: int,
                  ballot_size: int,
-                 candidates_required=1,
-                 threshold=0.5,
-                 display_delay=1
+                 candidates_required: int = 1,
+                 threshold: float = 0.5,
+                 display_delay: int | float | None = 1
                  ):
         self.metadata = MetadataReader(metadata).read()
         self.candidates_running = candidates_running
@@ -41,9 +41,13 @@ class RankedChoiceApplication:
                 threshold=self.threshold,
             )
 
-            election_display = RankedChoiceDisplay(election_runner, title, delay=self.display_delay)
+            if self.display_delay is None:
+                for run in election_runner.run_election():
+                    _exhaust(run)
+            else:
+                election_display = RankedChoiceDisplay(election_runner, title, delay=self.display_delay)
 
-            election_display.run_election_display()
+                election_display.run_election_display()
 
             print(f"Winners for {title} (candidates: {self.candidates_required}; threshold: {self.threshold}):")
 
