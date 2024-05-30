@@ -28,7 +28,7 @@ class RankedChoiceDisplay:
 
             axes.yaxis.set_major_locator(MaxNLocator(integer=True))
             plt.title(self.title)
-            plt.ylim([0, self.runner.get_num_ballots() + 1])
+            plt.ylim([0, self.runner.num_ballots + 1])
 
             rects = plt.bar(
                 candidates,
@@ -36,6 +36,10 @@ class RankedChoiceDisplay:
                 color="blue",
                 align="center",
             )
+
+            for rect, ballot_count in zip(rects, ballot_counts):
+                if ballot_count > self.runner.majority:
+                    rect.set_color("red")
 
             plt.pause(self.delay)
 
@@ -47,6 +51,9 @@ class RankedChoiceDisplay:
 
                 for rect, ballot_count in zip(rects, ballot_counts):
                     rect.set_height(ballot_count)
+
+                    if ballot_count > self.runner.majority:
+                        rect.set_color("red")
 
                 fig.canvas.draw()
                 plt.pause(self.delay)

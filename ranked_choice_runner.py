@@ -25,18 +25,35 @@ class RankedChoiceRunner:
             raise ValueError("Number of required candidates exceed number of available candidates. ")
 
         self.data = data
-        self.majority = int(len(self.data) * threshold) + 1
+        self._majority = int(len(self.data) * threshold) + 1
         self.eliminated: set[str] = set()
-        self.candidates_running = candidates_running
-        self.ballot_size = ballot_size
-        self.candidates_required = candidates_required
+        self._candidates_running = candidates_running
+        self._ballot_size = ballot_size
+        self._candidates_required = candidates_required
         self.winners: set[str] = set()
 
-    def get_num_ballots(self):
+    @property
+    def num_ballots(self):
         return len(self.data)
 
+    @property
+    def candidates_running(self):
+        return self._candidates_running
+
+    @property
+    def candidates_required(self):
+        return self._candidates_required
+
+    @property
+    def ballot_size(self):
+        return self._ballot_size
+
+    @property
+    def majority(self):
+        return self._majority
+
     def run_election(self):
-        for _ in range(self.candidates_required):
+        for _ in range(self._candidates_required):
             votes: VoteDict = defaultdict(list)
 
             for ballot in self.data:
@@ -57,7 +74,7 @@ class RankedChoiceRunner:
     def _runoff_generator(self, votes: VoteDict):
         yield votes
 
-        has_majority = [len(ballots) > self.majority for _, ballots in votes.items()]
+        has_majority = [len(ballots) > self._majority for _, ballots in votes.items()]
 
         while not any(has_majority):
             eliminated_candidates = _select_removable_candidates(votes)
@@ -67,11 +84,11 @@ class RankedChoiceRunner:
             for eliminated_candidate in eliminated_candidates:
                 del votes[eliminated_candidate]
 
-            has_majority = [len(ballots) > self.majority for _, ballots in votes.items()]
+            has_majority = [len(ballots) > self._majority for _, ballots in votes.items()]
 
             yield votes
 
-        majority_list = [(candidate, ballots) for candidate, ballots in votes.items() if len(ballots) > self.majority]
+        majority_list = [(candidate, ballots) for candidate, ballots in votes.items() if len(ballots) > self._majority]
         max_ballots = max([len(ballots) for _, ballots in majority_list])
         winner_list = [candidate for candidate, ballots in majority_list if len(ballots) == max_ballots]
 
@@ -109,7 +126,7 @@ class RankedChoiceRunner:
                 if winner_index == -1:
                     continue
 
-                tiebreaker_dict[winner] += (self.ballot_size - winner_index)
+                tiebreaker_dict[winner] += (self._ballot_size - winner_index)
 
         max_points = max([point for point in tiebreaker_dict.values()])
         point_winners = [candidate for candidate, points in tiebreaker_dict.items() if points == max_points]

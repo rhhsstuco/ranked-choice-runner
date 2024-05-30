@@ -2,7 +2,6 @@ from collections import deque
 from collections.abc import Mapping
 
 from ballot_reader import BallotReader
-from metadata_reader import MetadataReader
 from ranked_choice_display import RankedChoiceDisplay
 from ranked_choice_runner import RankedChoiceRunner
 
@@ -15,29 +14,22 @@ def _exhaust(generator):
 
 class RankedChoiceApplication:
     def __init__(self, *,
-                 metadata: str,
-                 candidates_running: int,
-                 ballot_size: int,
-                 candidates_required: int = 1,
+                 metadata_filepath: str,
                  threshold: float = 0.5,
                  display_delay: int | float | None = 1
                  ):
-        self.metadata = MetadataReader(metadata).read()
-        self.candidates_running = candidates_running
-        self.ballot_size = ballot_size
-        self.candidates_required = candidates_required
+        self.vote_list = BallotReader(metadata_filepath).read()
         self.threshold = threshold
         self.display_delay = display_delay
 
     def run(self):
-        for title, filepath in self.metadata.items():
-            election_data = BallotReader(filepath).read()
+        for position_data in self.vote_list:
 
             election_runner = RankedChoiceRunner(
-                election_data,
-                candidates_running=self.candidates_running,
-                candidates_required=self.candidates_required,
-                ballot_size=self.ballot_size,
+                position_data.ballots,
+                candidates_running=position_data.num_candidates,
+                candidates_required=position_data.num_winners,
+                ballot_size=(1 if position_data.num_candidates <= 2 else position_data.num_candidates),
                 threshold=self.threshold,
             )
 
@@ -45,11 +37,16 @@ class RankedChoiceApplication:
                 for run in election_runner.run_election():
                     _exhaust(run)
             else:
-                election_display = RankedChoiceDisplay(election_runner, title, delay=self.display_delay)
+                election_display = RankedChoiceDisplay(
+                    election_runner,
+                    title=position_data.name,
+                    delay=self.display_delay
+                )
 
                 election_display.run_election_display()
 
-            print(f"Winners for {title} (candidates: {self.candidates_required}; threshold: {self.threshold}):")
+            print(f"Winners for {position_data.name}"
+                  f"(candidates: {position_data.num_winners}; threshold: {self.threshold}):")
 
             for winner in election_runner.winners:
                 print(winner)
