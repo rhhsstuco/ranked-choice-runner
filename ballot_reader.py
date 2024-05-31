@@ -8,31 +8,55 @@ from position_data import PositionData
 
 
 class BallotReader:
+    """
+    Reads the ballot information from a csv file using the config JSON file specified
+    by the `metadata_filepath` parameter.
+    """
+
     def __init__(self, metadata_filepath: str):
+        """
+        Creates a `BallotReader` instance for reading ballots
+
+        :arg metadata_filepath: the path of the configuration JSON file
+        """
         self.metadata_filepath = metadata_filepath
 
     def read(self) -> list[PositionData]:
+        """
+        Creates a `BallotReader` instance for reading ballots
+
+        :return: a list of `PositionData` instances representing the ballots and parameters of
+        the election for a single position.
+        """
         with open(self.metadata_filepath) as file:
-            metadata_dict: dict[str, Any] = json.load(file)
+            config_dict: dict[str, Any] = json.load(file)
 
-        assert "source" in metadata_dict
-        assert "positions" in metadata_dict
+        assert "source" in config_dict
+        assert "positions" in config_dict
+        assert "threshold" in config_dict
 
-        positions_metadata: dict[str, dict[str, Any]] = metadata_dict["positions"]
+        source = config_dict["source"]
 
+        # dictionary of all positions to their metadata (as a dictionary)
+        positions_metadata: dict[str, dict[str, Any]] = config_dict["positions"]
+
+        # dictionary of all positions to their ballots
         vote_list: dict[str, list[Ballot]] = defaultdict(list)
 
-        with open(metadata_dict["source"]) as file:
+        with open(source) as file:
             reader = csv.reader(file, delimiter=",")
 
             # skip the headers
             next(reader, None)
 
+            # Assign ballots to positions
             for i, row in enumerate(reader):
-
                 start = 1
 
                 for name, position_metadata in positions_metadata.items():
+                    assert "num_candidates" in position_metadata
+                    assert "num_winners" in position_metadata
+
                     num_candidates = position_metadata["num_candidates"]
 
                     if num_candidates <= 0:
@@ -47,13 +71,22 @@ class BallotReader:
 
         position_data_list: list[PositionData] = []
 
+        global_threshold = float(config_dict["threshold"])
+
         for position, ballots in vote_list.items():
+            # Reads the election threshold parameter, defaulting to the global value if needed
+            if "threshold" in config_dict["positions"][position]:
+                threshold = float(config_dict["positions"][position]["threshold"])
+            else:
+                threshold = global_threshold
+
             position_data_list.append(
                 PositionData(
                     name=position,
                     ballots=vote_list[position],
-                    num_candidates=metadata_dict["positions"][position]["num_candidates"],
-                    num_winners=metadata_dict["positions"][position]["num_winners"]
+                    num_candidates=config_dict["positions"][position]["num_candidates"],
+                    num_winners=config_dict["positions"][position]["num_winners"],
+                    threshold=threshold
                 )
             )
 

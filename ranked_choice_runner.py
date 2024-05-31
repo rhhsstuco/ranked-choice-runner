@@ -76,8 +76,15 @@ class RankedChoiceRunner:
 
         has_majority = [len(ballots) > self._majority for _, ballots in votes.items()]
 
+        tie = False
+
         while not any(has_majority):
             eliminated_candidates = _select_removable_candidates(votes)
+
+            # There is a tie
+            if len(eliminated_candidates) == len(votes):
+                tie = True
+                break
 
             self._transfer_votes(votes, eliminated_candidates)
 
@@ -88,7 +95,7 @@ class RankedChoiceRunner:
 
             yield votes
 
-        majority_list = [(candidate, ballots) for candidate, ballots in votes.items() if len(ballots) > self._majority]
+        majority_list = [(candidate, ballots) for candidate, ballots in votes.items()]
         max_ballots = max([len(ballots) for _, ballots in majority_list])
         winner_list = [candidate for candidate, ballots in majority_list if len(ballots) == max_ballots]
 
@@ -115,6 +122,8 @@ class RankedChoiceRunner:
 
     def _run_tiebreaker(self, winner_list: list[str], votes: VoteDict):
         tiebreaker_dict: defaultdict[str, int] = defaultdict(int)
+
+        print("tie")
 
         for winner in winner_list:
             ballots = votes[winner]

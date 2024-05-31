@@ -15,11 +15,9 @@ def _exhaust(generator):
 class RankedChoiceApplication:
     def __init__(self, *,
                  metadata_filepath: str,
-                 threshold: float = 0.5,
                  display_delay: int | float | None = 1
                  ):
         self.vote_list = BallotReader(metadata_filepath).read()
-        self.threshold = threshold
         self.display_delay = display_delay
 
     def run(self):
@@ -30,7 +28,7 @@ class RankedChoiceApplication:
                 candidates_running=position_data.num_candidates,
                 candidates_required=position_data.num_winners,
                 ballot_size=(1 if position_data.num_candidates <= 2 else position_data.num_candidates),
-                threshold=self.threshold,
+                threshold=position_data.threshold,
             )
 
             if self.display_delay is None:
@@ -46,7 +44,7 @@ class RankedChoiceApplication:
                 election_display.run_election_display()
 
             print(f"Winners for {position_data.name}"
-                  f"(candidates: {position_data.num_winners}; threshold: {self.threshold}):")
+                  f"(candidates: {position_data.num_winners}; threshold: {position_data.threshold}):")
 
             for winner in election_runner.winners:
                 print(winner)

@@ -8,4 +8,5 @@ class PositionData:
     name: str
     num_candidates: int
     num_winners: int
+    threshold: float
     ballots: list[Ballot]
