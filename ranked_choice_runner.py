@@ -4,6 +4,15 @@ from collections.abc import Set
 from custom_types import Ballot, VoteDict
 
 
+def _copy_vote_dict(votes: VoteDict) -> VoteDict:
+    new_vote_dict: VoteDict = defaultdict(list)
+
+    for candidate, ballots in votes.items():
+        new_vote_dict[candidate] = ballots.copy()
+
+    return new_vote_dict
+
+
 def _select_removable_candidates(votes: VoteDict) -> Set[str]:
     min_votes = min([len(ballots) for _, ballots in votes.items()])
 
@@ -72,18 +81,15 @@ class RankedChoiceRunner:
         self.winners = set()
 
     def _runoff_generator(self, votes: VoteDict):
-        yield votes
+        yield _copy_vote_dict(votes)
 
         has_majority = [len(ballots) > self._majority for _, ballots in votes.items()]
-
-        tie = False
 
         while not any(has_majority):
             eliminated_candidates = _select_removable_candidates(votes)
 
             # There is a tie
             if len(eliminated_candidates) == len(votes):
-                tie = True
                 break
 
             self._transfer_votes(votes, eliminated_candidates)
@@ -93,11 +99,11 @@ class RankedChoiceRunner:
 
             has_majority = [len(ballots) > self._majority for _, ballots in votes.items()]
 
-            yield votes
+            yield _copy_vote_dict(votes)
 
-        majority_list = [(candidate, ballots) for candidate, ballots in votes.items()]
-        max_ballots = max([len(ballots) for _, ballots in majority_list])
-        winner_list = [candidate for candidate, ballots in majority_list if len(ballots) == max_ballots]
+        candidate_list = [(candidate, ballots) for candidate, ballots in votes.items()]
+        max_ballots = max([len(ballots) for _, ballots in candidate_list])
+        winner_list = [candidate for candidate, ballots in candidate_list if len(ballots) == max_ballots]
 
         num_winners = len(winner_list)
 
@@ -121,18 +127,43 @@ class RankedChoiceRunner:
                         break
 
     def _run_tiebreaker(self, winner_list: list[str], votes: VoteDict):
-        tiebreaker_dict: defaultdict[str, int] = defaultdict(int)
+        winner = self._run_first_tiebreaker(winner_list, votes)
 
-        print("tie")
+        if winner is None:
+            return self._run_second_tiebreaker(winner_list, self.data)
+        else:
+            return winner
+
+    def _run_first_tiebreaker(self, winner_list: list[str], votes: VoteDict):
+        tiebreaker_dict: defaultdict[str, int] = defaultdict(int)
 
         for winner in winner_list:
             ballots = votes[winner]
 
             for ballot in ballots:
-                winner_index = ballot.index(winner)
+                try:
+                    winner_index = ballot.index(winner)
+                except ValueError:
+                    continue
 
-                # TODO: maybe remove this (this shouldn't happen)
-                if winner_index == -1:
+                tiebreaker_dict[winner] += (self._ballot_size - winner_index)
+
+        max_points = max([point for point in tiebreaker_dict.values()])
+        point_winners = [candidate for candidate, points in tiebreaker_dict.items() if points == max_points]
+
+        if len(point_winners) == 1:
+            return point_winners[0]
+        else:
+            return None
+
+    def _run_second_tiebreaker(self, winner_list: list[str], all_ballots: list[Ballot]):
+        tiebreaker_dict: defaultdict[str, int] = defaultdict(int)
+
+        for winner in winner_list:
+            for ballot in all_ballots:
+                try:
+                    winner_index = ballot.index(winner)
+                except ValueError:
                     continue
 
                 tiebreaker_dict[winner] += (self._ballot_size - winner_index)
@@ -146,3 +177,4 @@ class RankedChoiceRunner:
             print(tiebreaker_dict)
             raise RuntimeError("The point tiebreaker system determines multiple winners. Please consult the election "
                                "committee.")
+

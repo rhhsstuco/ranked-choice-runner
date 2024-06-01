@@ -234,3 +234,4 @@ cython_debug/
 
 data.csv
 metadata.json
+results.txt

@@ -17,10 +17,12 @@ class RankedChoiceApplication:
                  metadata_filepath: str,
                  display_delay: int | float | None = 1
                  ):
-        self.vote_list = BallotReader(metadata_filepath).read()
+        self.output_file, self.vote_list = BallotReader(metadata_filepath).read()
         self.display_delay = display_delay
 
     def run(self):
+        file_output: list[str] = []
+
         for position_data in self.vote_list:
 
             election_runner = RankedChoiceRunner(
@@ -43,8 +45,11 @@ class RankedChoiceApplication:
 
                 election_display.run_election_display()
 
-            print(f"Winners for {position_data.name}"
-                  f"(candidates: {position_data.num_winners}; threshold: {position_data.threshold}):")
+            file_output.append(f"Winners for {position_data.name}"
+                               f"(candidates: {position_data.num_winners}; threshold: {position_data.threshold}):")
 
-            for winner in election_runner.winners:
-                print(winner)
+            file_output.extend(election_runner.winners)
+            file_output.append("")
+
+        with open(self.output_file, 'w') as output:
+            output.write("\n".join(file_output))

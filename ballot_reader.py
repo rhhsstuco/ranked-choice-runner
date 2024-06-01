@@ -1,7 +1,7 @@
 import csv
 import json
 from collections import defaultdict, OrderedDict
-from typing import Any
+from typing import Any, Tuple, List
 
 from custom_types import Ballot
 from position_data import PositionData
@@ -21,7 +21,7 @@ class BallotReader:
         """
         self.metadata_filepath = metadata_filepath
 
-    def read(self) -> list[PositionData]:
+    def read(self) -> tuple[str, list[PositionData]]:
         """
         Creates a `BallotReader` instance for reading ballots
 
@@ -34,6 +34,7 @@ class BallotReader:
         assert "source" in config_dict
         assert "positions" in config_dict
         assert "threshold" in config_dict
+        assert "output" in config_dict
 
         source = config_dict["source"]
 
@@ -90,4 +91,4 @@ class BallotReader:
                 )
             )
 
-        return position_data_list
+        return str(config_dict["output"]), position_data_list
