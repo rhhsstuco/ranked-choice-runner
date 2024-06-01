@@ -233,5 +233,5 @@ dmypy.json
 cython_debug/
 
 data.csv
-metadata.json
+config.json
 results.txt

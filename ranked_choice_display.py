@@ -1,5 +1,4 @@
 from matplotlib.axes import Axes
-from matplotlib.backend_bases import Event
 from matplotlib.container import BarContainer
 from matplotlib.figure import Figure
 from matplotlib.text import Text
@@ -44,6 +43,7 @@ class _ElectionDisplay:
             self.axes,
             self.textboxes,
             self.rects,
+            candidates,
             ballot_counts
         )
 
@@ -62,6 +62,7 @@ class _ElectionDisplay:
             self.axes,
             self.textboxes,
             self.rects,
+            candidates,
             ballot_counts
         )
 
@@ -70,6 +71,7 @@ class _ElectionDisplay:
             axes: Axes,
             prev_textboxes: list[Text],
             rects: BarContainer,
+            candidates: list[str],
             ballot_counts: list[int]
     ):
         for textbox in prev_textboxes:
@@ -79,6 +81,8 @@ class _ElectionDisplay:
 
         for rect in rects:
             rect.set_height(0)
+
+        self.axes.set_xticks(range(len(candidates)), candidates)
 
         for rect, ballot_count in zip(rects, ballot_counts):
             rect.set_height(ballot_count)
@@ -106,15 +110,16 @@ class _ElectionDisplay:
 
         candidates, ballot_counts = _transform_votes(initial_vote)
 
-        self.fig, self.axes = plt.subplots()
+        subplots: tuple[Figure, Axes] = plt.subplots()
+        self.fig, self.axes = subplots
 
         self.axes.yaxis.set_major_locator(MaxNLocator(integer=True))
         plt.title(self.title)
         plt.ylim([0, self._runner.num_ballots + 1])
 
         self.fig.subplots_adjust(bottom=0.2)
-        ax_prev = self.fig.add_axes([0.7, 0.05, 0.1, 0.075])
-        ax_next = self.fig.add_axes([0.81, 0.05, 0.1, 0.075])
+        ax_prev = self.fig.add_axes((0.7, 0.05, 0.1, 0.075))
+        ax_next = self.fig.add_axes((0.81, 0.05, 0.1, 0.075))
 
         next_button = Button(ax_next, 'Next')
         next_button.on_clicked(lambda e: self.next())
@@ -132,7 +137,8 @@ class _ElectionDisplay:
             self.axes,
             self.textboxes,
             self.rects,
-            ballot_counts
+            candidates,
+            ballot_counts,
         )
 
         plt.pause(0.5)

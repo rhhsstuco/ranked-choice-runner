@@ -3,7 +3,7 @@ from ranked_choice_application import RankedChoiceApplication
 
 def main():
     application = RankedChoiceApplication(
-        metadata_filepath="metadata.json",
+        metadata_filepath="config.json",
         display_delay=2
     )
 
