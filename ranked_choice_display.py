@@ -242,7 +242,7 @@ class _ElectionDisplay:
 
 
 class RankedChoiceDisplay:
-    def __init__(self, runner: RankedChoiceRunner, title: str, *, delay=1):
+    def __init__(self, runner: RankedChoiceRunner, title: str):
         self.runner = runner
         self.title = title
 

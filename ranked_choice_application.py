@@ -15,10 +15,10 @@ def _exhaust(generator):
 class RankedChoiceApplication:
     def __init__(self, *,
                  metadata_filepath: str,
-                 display_delay: int | float | None = 1
+                 show_display: bool = True,
                  ):
         self.output_file, self.vote_list = BallotReader(metadata_filepath).read()
-        self.display_delay = display_delay
+        self.show_display = show_display
 
     def run(self):
         file_output: list[str] = []
@@ -33,17 +33,17 @@ class RankedChoiceApplication:
                 threshold=position_data.threshold,
             )
 
-            if self.display_delay is None:
-                for run in election_runner.run_election():
-                    _exhaust(run)
-            else:
+            if self.show_display:
                 election_display = RankedChoiceDisplay(
                     election_runner,
                     title=position_data.name,
-                    delay=self.display_delay
                 )
 
                 election_display.run_election_display()
+            else:
+                for run in election_runner.run_election():
+                    _exhaust(run)
+
 
             file_output.append(f"Winners for {position_data.name}"
                                f"(candidates: {position_data.num_winners}; threshold: {position_data.threshold}):")
