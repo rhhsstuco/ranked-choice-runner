@@ -78,12 +78,8 @@ An example of the schema is given below:
 The format of the input CSV file is designed to mimic that of Google Forms.
 As such, the format goes as (the header values do not matter):
 
-| Timestamp | Position A (1) | Position A (2) | ... | Position A (n) | Position B (1) | Position B (2) | ... | Position B (n) | ... |   Position C   | ... |
-|-----------|----------------|----------------|-----|----------------|----------------|----------------|-----|----------------|-----|----------------|-----|
-| timestamp | Choice 1 for A | Choice 2 for A | ... | Choice n for A | Choice 1 for B | Choice 2 for B | ... | Choice n for B | ... | Choice 1 for C | ... |
-| timestamp | Choice 1 for A | Choice 2 for A | ... | Choice n for A | Choice 1 for B | Choice 3 for B | ... | Choice n for B | ... | Choice 2 for C | ... |
-| ...       | ...            | ...            | ... | ...            | ...            | ...            | ... | ...            | ... | ...            | ... |
-
-If a position only has 2 candidates running for it, such as position C in
-the example above, only 1 column is required. The column specifies a singular
-choice for each voter.
+| Timestamp | Position A (1) | Position A (2) | ... | Position A (n) | Position B (1) | Position B (2) | ... | Position B (n) | ... |
+|-----------|----------------|----------------|-----|----------------|----------------|----------------|-----|----------------|-----|
+| timestamp | Choice 1 for A | Choice 2 for A | ... | Choice n for A | Choice 1 for B | Choice 2 for B | ... | Choice n for B | ... |
+| timestamp | Choice 1 for A | Choice 2 for A | ... | Choice n for A | Choice 1 for B | Choice 3 for B | ... | Choice n for B | ... |
+| ...       | ...            | ...            | ... | ...            | ...            | ...            | ... | ...            | ... |
