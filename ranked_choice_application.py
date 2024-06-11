@@ -1,42 +1,56 @@
 from collections import deque
-from collections.abc import Mapping
+from collections.abc import Generator
 
 from ballot_reader import BallotReader
 from ranked_choice_display import RankedChoiceDisplay
 from ranked_choice_runner import RankedChoiceRunner
 
-ElectionMetadata = Mapping[str, str]
 
+def _exhaust(generator: Generator):
+    """
+    Exhausts a (finite) generator.
 
-def _exhaust(generator):
+    :param generator: the generator to exhaust
+    """
+    # Constructs a deque of length zero, which causes values of the generator
+    # to be repeatedly added and removed
     deque(generator, maxlen=0)
 
 
 class RankedChoiceApplication:
+    """
+    Runs a ranked choice election with a bar chart display.
+    """
     def __init__(self, *,
-                 metadata_filepath: str,
+                 config_filepath: str,
                  show_display: bool = True,
                  ):
-        self.output_file, self.vote_list = BallotReader(metadata_filepath).read()
+        """
+        :param config_filepath: the filepath to the config JSON file
+        :param show_display: if the election is graphically displayed or not
+        """
+        self.output_file, self.vote_list = BallotReader(config_filepath).read()
         self.show_display = show_display
 
     def run(self):
+        """
+        Runs all elections for all candidates to completion
+        """
         file_output: list[str] = []
 
-        for position_data in self.vote_list:
-
+        for position_metadata in self.vote_list:
             election_runner = RankedChoiceRunner(
-                position_data.ballots,
-                candidates_running=position_data.num_candidates,
-                candidates_required=position_data.num_winners,
-                ballot_size=(1 if position_data.num_candidates <= 2 else position_data.num_candidates),
-                threshold=position_data.threshold,
+                position_metadata.ballots,
+                candidates_running=position_metadata.num_candidates,
+                candidates_required=position_metadata.num_winners,
+                ballot_size=position_metadata.num_candidates,
+                threshold=position_metadata.threshold,
             )
 
             if self.show_display:
                 election_display = RankedChoiceDisplay(
                     election_runner,
-                    title=position_data.name,
+                    title=position_metadata.name,
                 )
 
                 election_display.run_election_display()
@@ -44,9 +58,8 @@ class RankedChoiceApplication:
                 for run in election_runner.run_election():
                     _exhaust(run)
 
-
-            file_output.append(f"Winners for {position_data.name}"
-                               f"(candidates: {position_data.num_winners}; threshold: {position_data.threshold}):")
+            file_output.append(f"Winners for {position_metadata.name} (candidates: {position_metadata.num_winners}; "
+                               f"threshold: {position_metadata.threshold}):")
 
             file_output.extend(election_runner.winners)
             file_output.append("")

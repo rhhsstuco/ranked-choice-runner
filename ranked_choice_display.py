@@ -2,9 +2,7 @@ from collections import defaultdict
 
 from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event
-from matplotlib.container import BarContainer
 from matplotlib.figure import Figure
-from matplotlib.text import Text
 from matplotlib.widgets import Button
 
 from custom_types import VoteDict, Ballot
@@ -13,10 +11,12 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from ranked_choice_runner import RankedChoiceRunner
 
+_TEXT_OFFSET = 20
+
 
 def _make_ordinal(n: int):
     """
-    Convert an integer into its ordinal representation::
+    Convert an integer into its ordinal representation
 
     make_ordinal(0)   => '0th'
     make_ordinal(3)   => '3rd'
@@ -31,6 +31,13 @@ def _make_ordinal(n: int):
 
 
 def _transform_votes(votes: VoteDict):
+    """
+    Transform a MutableMapping[str, list[Ballot]] into 3 separate lists
+    representing candidate names, ballot lists, and ballot counts.
+
+    :arg votes the VoteDict to transform
+    :return three lists in a tuple representing the candidates, ballots, and ballot counts
+    """
     candidates = list(votes.keys())
     ballots = list(votes.values())
     ballots_counts = [len(ballots) for ballots in ballots]
@@ -39,9 +46,16 @@ def _transform_votes(votes: VoteDict):
 
 
 def _display_ballots(candidate: str, ballots: list[Ballot]):
+    """
+    Displays the vote distribution (1st, 2nd, 3rd, ...) on a bar chart using matplotlib.
+
+    :arg candidate the candidate whose votes are displayed
+    :arg ballots the ballots for the candidate
+    """
     if len(ballots) == 0:
         return
 
+    # Maps the vote rank to the amount of votes
     ballot_place_counts: defaultdict[int, int] = defaultdict(int)
 
     for ballot in ballots:
@@ -52,6 +66,7 @@ def _display_ballots(candidate: str, ballots: list[Ballot]):
 
         ballot_place_counts[idx + 1] += 1
 
+    # No valid ballots
     if len(ballot_place_counts) == 0:
         return
 
@@ -61,6 +76,9 @@ def _display_ballots(candidate: str, ballots: list[Ballot]):
     labels = []
     bars = []
 
+    # Creates a Prefix Sum Array where the value at each index i
+    # is the sum of the votes ranked higher than or equal to i + 1.
+    # E.g. index 2 is the sum of the first and second ranked votes
     sorted_keys = sorted(ballot_place_counts.keys())
     sorted_values = [ballot_place_counts[key] for key in sorted_keys]
     ballots_psa = [sorted_values[0]]
@@ -71,15 +89,18 @@ def _display_ballots(candidate: str, ballots: list[Ballot]):
 
         ballots_psa.append(ballots_psa[i - 1] + sorted_values[i])
 
+    # Plot metadata
     axes.yaxis.set_major_locator(MaxNLocator(integer=True))
     plt.ylim([0, max(ballots_psa) * 1.2])
     plt.title(f"Vote Distribution for {candidate}")
 
     ballots_psa.reverse()
 
+    # Construct bars
     for i, key in enumerate(reversed(sorted_keys)):
         labels.append(f"{_make_ordinal(key)} choice")
 
+        # Create bar
         bar = axes.bar(
             ["Vote Distribution"],
             ballots_psa[i],
@@ -90,9 +111,10 @@ def _display_ballots(candidate: str, ballots: list[Ballot]):
 
         prev_height = 0 if i == len(ballots_psa) - 1 else ballots_psa[i + 1]
 
+        # Computes label value and location
         num_votes = ballots_psa[i] - prev_height
         text_height = ballots_psa[i]
-        axes.text(bar[0].get_x() + bar[0].get_width() / 2., 1.05 * text_height,
+        axes.text(bar[0].get_x() + bar[0].get_width() / 2., text_height + _TEXT_OFFSET,
                   str(num_votes),
                   ha='center', va='bottom')
 
@@ -103,105 +125,124 @@ def _display_ballots(candidate: str, ballots: list[Ballot]):
 
 
 class _ElectionDisplay:
+    """
+    Helper class that displays the stages of one election run (where one candidate is elected).
+    """
+
     def __init__(self, *, stages: list[VoteDict], runner: RankedChoiceRunner, title: str):
+        """
+        :param stages: the state of the ballot distribution at each point in the election.
+        :param runner: the runner responsible for running the election. Contains useful election metadata
+        :param title: the title of the displayed matplotlib chart
+        """
+        self.stages = stages
+        self._runner = runner
+        self.title = title
+        self.index = 0
+
         self.candidates = []
         self.ballots = []
         self.ballot_counts = []
-        self.stages = stages
-        self.index = 0
-        self._runner = runner
-        self.title = title
         self.textboxes = []
         self.distribution_figures = []
 
         self._init_election_display()
 
-    def next(self):
-        self.index += 1
-
-        if self.index >= len(self.stages):
+    def _next(self):
+        """
+        Moves the displayed chart to the next stage of the election,
+        closing the chart window if the end is reached.
+        """
+        # Closes the chart window
+        if self.index >= len(self.stages) - 1:
             self._close_distribution_figures()
             plt.close(self.fig)
             return
 
-        votes = self.stages[self.index]
+        self.index += 1
 
+        votes = self.stages[self.index]
         self.candidates, self.ballots, self.ballot_counts = _transform_votes(votes)
 
-        self.textboxes = self._update_graph(
-            self.axes,
-            self.textboxes,
-            self.rects
-        )
+        self._update_graph()
 
-    def prev(self):
-        self.index -= 1
-
-        if self.index < 0:
-            self.index = 0
+    def _prev(self):
+        """
+        Moves the displayed chart to the next stage of the election,
+        closing the chart window if the end is reached.
+        """
+        if self.index <= 0:
             return
 
-        votes = self.stages[self.index]
+        self.index -= 1
 
+        votes = self.stages[self.index]
         self.candidates, self.ballots, self.ballot_counts = _transform_votes(votes)
 
-        self.textboxes = self._update_graph(
-            self.axes,
-            self.textboxes,
-            self.rects,
-        )
+        self._update_graph()
 
     def _close_distribution_figures(self):
+        """
+        Closes the figures displaying vote distributions for candidates.
+        """
         for fig in self.distribution_figures:
             plt.close(fig)
 
-    def _click_handler(self, e: Event):
+    def _bar_click_handler(self, e: Event):
+        """
+        Handles the click event which occurs on the bars on the bar graph.
+
+        :param e the event object, containing event metadata.
+        """
         for candidate, ballots, rect in zip(self.candidates, self.ballots, self.rects):
             if rect.contains(e)[0]:
                 fig = _display_ballots(candidate, ballots)
 
                 self.distribution_figures.append(fig)
 
-    def _update_graph(
-            self,
-            axes: Axes,
-            prev_textboxes: list[Text],
-            rects: BarContainer,
-    ):
+    def _update_graph(self):
+        """
+        Updates the vote chart display.
+        """
+        # Resetting graph
         self._close_distribution_figures()
 
-        for textbox in prev_textboxes:
+        for textbox in self.textboxes:
             textbox.remove()
 
-        prev_textboxes.clear()
+        self.textboxes.clear()
 
-        for rect in rects:
+        for rect in self.rects:
             rect.set_height(0)
 
+        # Sets ticks
         self.axes.set_xticks(range(len(self.candidates)), self.candidates)
 
-        for rect, ballot_count in zip(rects, self.ballot_counts):
+        # Sets the rectangles to the appropriate height
+        for rect, ballot_count in zip(self.rects, self.ballot_counts):
             rect.set_height(ballot_count)
 
+            # Changes color if a majority is attained
             if ballot_count > self._runner.majority:
                 rect.set_color("red")
             else:
                 rect.set_color("blue")
 
             height = rect.get_height()
-            textbox = axes.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
-                                str(ballot_count),
-                                ha='center', va='bottom')
+            textbox = self.axes.text(rect.get_x() + rect.get_width() / 2., height + _TEXT_OFFSET,
+                                     str(ballot_count),
+                                     ha='center', va='bottom')
 
-            prev_textboxes.append(textbox)
+            self.textboxes.append(textbox)
 
         # Redraw
         self.fig.canvas.draw()
         plt.pause(0.02)
 
-        return prev_textboxes
-
     def _init_election_display(self):
+        """
+        Initialized the vote chart display by drawing the initial stage and setting up event listeners.
+        """
         initial_vote = self.stages[0]
 
         self.candidates, self.ballots, self.ballot_counts = _transform_votes(initial_vote)
@@ -209,19 +250,24 @@ class _ElectionDisplay:
         subplots: tuple[Figure, Axes] = plt.subplots()
         self.fig, self.axes = subplots
 
+        # Sets graph metadata
+        # Sets the y-axis markers to integers only
         self.axes.yaxis.set_major_locator(MaxNLocator(integer=True))
         plt.title(self.title)
         plt.ylim([0, self._runner.num_ballots + 1])
 
+        # Allocate space for 'next' and 'prev' buttons
         self.fig.subplots_adjust(bottom=0.2)
         ax_prev = self.fig.add_axes((0.7, 0.05, 0.1, 0.075))
         ax_next = self.fig.add_axes((0.81, 0.05, 0.1, 0.075))
 
+        # Create buttons and attached event listeners
         next_button = Button(ax_next, 'Next')
-        next_button.on_clicked(lambda e: self.next())
+        next_button.on_clicked(lambda e: self._next())
         prev_button = Button(ax_prev, 'Prev')
-        prev_button.on_clicked(lambda e: self.prev())
+        prev_button.on_clicked(lambda e: self._prev())
 
+        # Constructs initial bar chart
         self.rects = self.axes.bar(
             self.candidates,
             self.ballot_counts,
@@ -229,53 +275,32 @@ class _ElectionDisplay:
             align="center",
         )
 
-        self.fig.canvas.mpl_connect('button_press_event', lambda e: self._click_handler(e))
+        # Attach listener to graph itself to display vote distributions
+        self.fig.canvas.mpl_connect('button_press_event', lambda e: self._bar_click_handler(e))
 
-        self.textboxes = self._update_graph(
-            self.axes,
-            self.textboxes,
-            self.rects,
-        )
+        self._update_graph()
 
         plt.pause(0.5)
         plt.show(block=True)
 
 
 class RankedChoiceDisplay:
+    """
+    Displays a full election cycle for one position.
+    This includes instant runoffs and multiple windows for multiple candidates.
+    """
+
     def __init__(self, runner: RankedChoiceRunner, title: str):
+        """
+        :param runner: the object responsible for running the elections to completion.
+        :param title: the title displayed by each window (e.g. position name).
+        """
         self.runner = runner
         self.title = title
 
-    def _update_graph(
-            self,
-            axes: Axes,
-            prev_textboxes: list[Text],
-            rects: BarContainer,
-            ballot_counts: list[int]
-    ):
-        for textbox in prev_textboxes:
-            textbox.remove()
-
-        prev_textboxes.clear()
-
-        for rect in rects:
-            rect.set_height(0)
-
-        for rect, ballot_count in zip(rects, ballot_counts):
-            rect.set_height(ballot_count)
-
-            if ballot_count > self.runner.majority:
-                rect.set_color("red")
-
-            height = rect.get_height()
-            textbox = axes.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
-                                str(ballot_count),
-                                ha='center', va='bottom')
-
-            prev_textboxes.append(textbox)
-
-        return prev_textboxes
-
     def run_election_display(self):
+        """
+        Runs the election to completion and displays the stages of each election.
+        """
         for run in self.runner.run_election():
             _ElectionDisplay(stages=list(run), runner=self.runner, title=self.title)
