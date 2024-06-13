@@ -11,7 +11,7 @@ class PositionMetadata:
     :param name: the position name
     :param num_candidates: the number of total candidates running for the position
     :param num_winners: the number of candidates required for the position
-    :param threshold: a flot
+    :param threshold: a float determining the minimum percentage of votes required for a majority.
     """
     name: str
     num_candidates: int
@@ -22,7 +22,7 @@ class PositionMetadata:
     def __post_init__(self):
         """
         :raises:
-            ValueError: if the argument 'threshold' is not between 0.0 and 1.0 (inclusive).
+            ValueError: if the argument ``threshold`` is not between 0.0 and 1.0 (inclusive).
         """
         if not 0 <= self.threshold <= 1:
             raise ValueError("Argument 'threshold' must be between 0.0 and 1.0 (inclusive).")

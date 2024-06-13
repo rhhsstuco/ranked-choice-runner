@@ -12,31 +12,36 @@ from matplotlib.ticker import MaxNLocator
 from ranked_choice_runner import RankedChoiceRunner
 
 _TEXT_OFFSET = 20
+_ORDINAL_SUFFIX_LIST = ['th', 'st', 'nd', 'rd', 'th']
 
 
 def _make_ordinal(n: int):
     """
-    Convert an integer into its ordinal representation
+    Convert an integer into its ordinal representation.
 
     make_ordinal(0)   => '0th'
     make_ordinal(3)   => '3rd'
     make_ordinal(122) => '122nd'
     make_ordinal(213) => '213th'
+
+    :param n: the integer to convert.
+    :return: the ordinal representation of ``n``.
     """
     if 11 <= (n % 100) <= 13:
         suffix = 'th'
     else:
-        suffix = ['th', 'st', 'nd', 'rd', 'th'][min(n % 10, 4)]
+        suffix = _ORDINAL_SUFFIX_LIST[min(n % 10, 4)]
+
     return str(n) + suffix
 
 
 def _transform_votes(votes: VoteDict):
     """
-    Transform a MutableMapping[str, list[Ballot]] into 3 separate lists
+    Transform a ``MutableMapping[str, list[Ballot]]`` into 3 separate lists
     representing candidate names, ballot lists, and ballot counts.
 
-    :arg votes the VoteDict to transform
-    :return three lists in a tuple representing the candidates, ballots, and ballot counts
+    :arg votes the ``VoteDict`` to transform.
+    :return three lists in a tuple representing the candidates, ballots, and ballot counts.
     """
     candidates = list(votes.keys())
     ballots = list(votes.values())
@@ -49,8 +54,8 @@ def _display_ballots(candidate: str, ballots: list[Ballot]):
     """
     Displays the vote distribution (1st, 2nd, 3rd, ...) on a bar chart using matplotlib.
 
-    :arg candidate the candidate whose votes are displayed
-    :arg ballots the ballots for the candidate
+    :arg candidate the candidate whose votes are displayed.
+    :arg ballots the ballots for the candidate.
     """
     if len(ballots) == 0:
         return
@@ -132,8 +137,8 @@ class _ElectionDisplay:
     def __init__(self, *, stages: list[VoteDict], runner: RankedChoiceRunner, title: str):
         """
         :param stages: the state of the ballot distribution at each point in the election.
-        :param runner: the runner responsible for running the election. Contains useful election metadata
-        :param title: the title of the displayed matplotlib chart
+        :param runner: the runner responsible for running the election. Contains useful election metadata.
+        :param title: the title of the displayed matplotlib chart.
         """
         self.stages = stages
         self._runner = runner

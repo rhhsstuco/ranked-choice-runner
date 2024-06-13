@@ -52,7 +52,7 @@ An example of the schema is given below:
 
 ```json5
 {
-  "source": "data.csv",
+  "source": "_data.csv",
   "output": "results.txt",
   "threshold": 0.5,
   "positions": {

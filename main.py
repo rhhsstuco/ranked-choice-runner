@@ -2,8 +2,12 @@ from ranked_choice_application import RankedChoiceApplication
 
 
 def main():
+    """
+    Runs the ranked choice election runner and display application.
+    """
+
     application = RankedChoiceApplication(
-        metadata_filepath="config.json",
+        config_filepath="config.json",
     )
 
     application.run()

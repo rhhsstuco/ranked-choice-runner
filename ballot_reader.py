@@ -26,22 +26,20 @@ def _check_key_exists_in_config(key: str, mapping: Mapping, key_path: str, confi
 class BallotReader:
     """
     Reads the ballot information from a csv file using the config JSON file specified
-    by the `config_filepath` parameter.
+    by the ``config_filepath`` parameter.
     """
 
     def __init__(self, config_filepath: str):
         """
-        Creates a `BallotReader` instance for reading ballots.
-
         :param config_filepath: the path of the configuration JSON file
         """
         self.config_filepath = config_filepath
 
     def read(self) -> tuple[str, list[PositionMetadata]]:
         """
-        Creates a `BallotReader` instance for reading ballots.
+        Creates a ``BallotReader`` instance for reading ballots.
 
-        :return: a tuple containing the output filepath and a list of `PositionData` instances representing the
+        :return: a tuple containing the output filepath and a list of ``PositionData`` instances representing the
         ballots and parameters of the election for a single position.
         """
         with open(self.config_filepath) as file:

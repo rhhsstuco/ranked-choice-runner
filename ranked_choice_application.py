@@ -26,8 +26,8 @@ class RankedChoiceApplication:
                  show_display: bool = True,
                  ):
         """
-        :param config_filepath: the filepath to the config JSON file
-        :param show_display: if the election is graphically displayed or not
+        :param config_filepath: the filepath to the config JSON file.
+        :param show_display: if the election is graphically displayed or not.
         """
         self.output_file, self.vote_list = BallotReader(config_filepath).read()
         self.show_display = show_display
