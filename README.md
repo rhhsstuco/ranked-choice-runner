@@ -52,7 +52,7 @@ An example of the schema is given below:
 
 ```json5
 {
-  "source": "_data.csv",
+  "source": "data.csv",
   "output": "results.txt",
   "threshold": 0.5,
   "positions": {
@@ -67,7 +67,7 @@ An example of the schema is given below:
     "Secretary": {
       "num_candidates": 3,
       "num_winners": 1,
-      "threshold": 0.4,
+      "threshold": 0.4
     }
   }
 }
