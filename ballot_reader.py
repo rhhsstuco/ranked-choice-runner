@@ -88,7 +88,15 @@ class BallotReader:
                     if num_candidates <= 0:
                         raise ValueError(f"Invalid amount of choices ({num_candidates}) for position ({name}).")
 
-                    vote_list[name].append(tuple(row[start:(start + num_candidates)]))
+                    ballot = tuple(row[start:(start + num_candidates)])
+
+                    print(ballot)
+
+                    if not all(ballot):
+                        start += num_candidates
+                        continue
+
+                    vote_list[name].append(ballot)
 
                     start += num_candidates
 

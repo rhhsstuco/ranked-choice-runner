@@ -1,5 +1,6 @@
 from collections import defaultdict
 from collections.abc import Set, Mapping
+from typing import Callable
 
 from custom_types import Ballot, VoteDict
 
@@ -198,7 +199,10 @@ class RankedChoiceRunner:
         elif num_winners == 1:
             self.winners.add(winner_list[0])
         else:
-            self.winners.add(self._run_tiebreaker(winner_list, votes))
+            try:
+                self.winners.add(self._run_tiebreaker(winner_list, votes))
+            except RuntimeError:
+                self.winners.add(f"A tie has occurred between {', '.join(winner_list)}")
 
     def _transfer_votes(self, votes: VoteDict, eliminated_candidates: Set[str]):
         """
@@ -219,12 +223,17 @@ class RankedChoiceRunner:
                         votes[choice].append(ballot)
                         break
 
-    def _run_tiebreaker(self, winner_list: list[str], votes: VoteDict):
+    def _run_tiebreaker(self,
+                        winner_list: list[str],
+                        votes: VoteDict, *,
+                        on_tie: Callable[[list[str]], None] | None = None
+        ):
         """
         Runs the tiebreaker procedure in the case that multiple candidates are tied.
 
         :param winner_list: the list of potential winning candidates.
         :param votes: the current vote distribution dictionary (``VoteDict``) of the election.
+        :param on_tie: a consumer function to be called with the list of tied winners .
         :return: the singular winner.
         :raises:
             ValueError: if the tiebreaker system still determines a tie.
@@ -235,6 +244,9 @@ class RankedChoiceRunner:
             winner = self._run_second_tiebreaker(winner_list, self._data)
 
             if winner is None:
+                if on_tie is not None:
+                    on_tie(winner_list)
+
                 raise RuntimeError("The point tiebreaker system determines multiple winners. Please consult the "
                                    "election committee.")
 
