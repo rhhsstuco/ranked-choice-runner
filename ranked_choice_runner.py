@@ -1,8 +1,9 @@
 from collections import defaultdict
-from collections.abc import Set, Mapping
-from typing import Callable
+from collections.abc import Set, Mapping, MutableMapping
+from typing import Callable, Literal
 
 from custom_types import Ballot, VoteDict
+from utils import make_ordinal
 
 
 def _copy_vote_dict(votes: VoteDict) -> VoteDict:
@@ -51,7 +52,6 @@ def _compute_tiebreaker_winner(tiebreaker_dict: Mapping[str, int]):
     if len(point_winners) == 1:
         return point_winners[0]
     else:
-        print(tiebreaker_dict)
         return None
 
 
@@ -63,14 +63,14 @@ class RankedChoiceRunner:
     def __init__(self,
                  data: list[Ballot],
                  *,
-                 candidates_running: int,
+                 candidates: list[str],
                  ballot_size: int,
                  candidates_required: int = 1,
                  threshold: float = 0.5
                  ):
         """
         :param data: a list of all ballots in the election, as a list of tuples of strings.
-        :param candidates_running: the number of candidates running in the election.
+        :param candidates: the list of candidates running in the election.
         :param ballot_size: the size of each ballot.
         :param candidates_required: the number of candidates required for the elected position.
         :param threshold: the percentage of votes that defines the majority.
@@ -82,16 +82,18 @@ class RankedChoiceRunner:
         if not data:
             raise ValueError("Invalid or empty ballot list.")
 
-        if candidates_required > candidates_running:
+        if candidates_required > len(candidates):
             raise ValueError("Number of required candidates exceed number of available candidates. ")
 
         self._data = data
         self._majority = int(len(self._data) * threshold) + 1
         self._eliminated: set[str] = set()
-        self._candidates_running = candidates_running
+        self._candidates = candidates
+        self._candidates_running = len(candidates)
         self._ballot_size = ballot_size
         self._candidates_required = candidates_required
         self.winners: set[str] = set()
+        self.notes: MutableMapping = defaultdict(list)
 
     @property
     def num_ballots(self):
@@ -136,7 +138,10 @@ class RankedChoiceRunner:
                  for each stage in the election.
         """
         for _ in range(self._candidates_required):
-            votes: VoteDict = defaultdict(list)
+            votes: VoteDict = {}
+
+            for candidate in self._candidates:
+                votes[candidate] = []
 
             # Construct initial ballot distribution dictionary (VoteDict)
             for ballot in self._data:
@@ -200,7 +205,9 @@ class RankedChoiceRunner:
             self.winners.add(winner_list[0])
         else:
             try:
-                self.winners.add(self._run_tiebreaker(winner_list, votes))
+                winner, tiebreaker_iteration = self._run_tiebreaker(winner_list, votes)
+                self.notes[winner].append(f"determined by the {make_ordinal(tiebreaker_iteration)} tiebreaker")
+                self.winners.add(winner)
             except RuntimeError:
                 self.winners.add(f"A tie has occurred between {', '.join(winner_list)}")
 
@@ -227,7 +234,7 @@ class RankedChoiceRunner:
                         winner_list: list[str],
                         votes: VoteDict, *,
                         on_tie: Callable[[list[str]], None] | None = None
-        ):
+                        ) -> tuple[str, Literal[1, 2]]:
         """
         Runs the tiebreaker procedure in the case that multiple candidates are tied.
 
@@ -249,8 +256,12 @@ class RankedChoiceRunner:
 
                 raise RuntimeError("The point tiebreaker system determines multiple winners. Please consult the "
                                    "election committee.")
+            else:
+                tiebreaker: Literal[1, 2] = 2
+        else:
+            tiebreaker: Literal[1, 2]  = 1
 
-        return winner
+        return winner, tiebreaker
 
     def _run_first_tiebreaker(self, winner_list: list[str], votes: VoteDict):
         """

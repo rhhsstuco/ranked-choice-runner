@@ -41,7 +41,7 @@ class RankedChoiceApplication:
         for position_metadata in self.vote_list:
             election_runner = RankedChoiceRunner(
                 position_metadata.ballots,
-                candidates_running=position_metadata.num_candidates,
+                candidates=position_metadata.candidates,
                 candidates_required=position_metadata.num_winners,
                 ballot_size=position_metadata.num_candidates,
                 threshold=position_metadata.threshold,
@@ -61,7 +61,12 @@ class RankedChoiceApplication:
             file_output.append(f"Winners for {position_metadata.name} (candidates: {position_metadata.num_winners}; "
                                f"threshold: {position_metadata.threshold}):")
 
-            file_output.extend(election_runner.winners)
+            for winner in election_runner.winners:
+                if winner in election_runner.notes:
+                    file_output.append(f"{winner} ({', '.join(election_runner.notes[winner])})")
+                else:
+                    file_output.append(winner)
+
             file_output.append("")
 
         with open(self.output_file, 'w') as output:

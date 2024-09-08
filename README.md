@@ -39,8 +39,8 @@ The configuration schema is as follows:
 * `positions`: `object`
   * An object mapping each position name to metadata about the position
     in the following schema:
-  * `num_candidates`: `number`
-    * The total number of candidates **running** for this position.
+  * `candidates`: `number`
+    * The list of candidates **running** for this position.
   * `num_winners`: `number`
     * The total number of candidates **required** for this position.
   * `[threshold]`: `number (optional)`
@@ -57,15 +57,27 @@ An example of the schema is given below:
   "threshold": 0.5,
   "positions": {
     "President": {
-      "num_candidates": 4,
+      "candidates": [
+        "Person A",
+        "Person B",
+        "Person C",
+        "Person D"
+      ],
       "num_winners": 2
     },
     "Vice President": {
-      "num_candidates": 2,
+      "candidates": [
+        "Person E",
+        "Person F"
+      ],
       "num_winners": 1
     },
     "Secretary": {
-      "num_candidates": 3,
+      "candidates": [
+        "Person G",
+        "Person H",
+        "Person I"
+      ],
       "num_winners": 1,
       "threshold": 0.4
     }

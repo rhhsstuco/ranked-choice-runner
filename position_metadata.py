@@ -9,15 +9,22 @@ class PositionMetadata:
     A dataclass containing parameters about the election for a position
 
     :param name: the position name
-    :param num_candidates: the number of total candidates running for the position
+    :param candidates: the list of candidates running for the position
     :param num_winners: the number of candidates required for the position
     :param threshold: a float determining the minimum percentage of votes required for a majority.
     """
     name: str
-    num_candidates: int
+    candidates: list[str]
     num_winners: int
     threshold: float
     ballots: list[Ballot]
+
+    @property
+    def num_candidates(self):
+        """
+        :return: the number of candidates running for this position.
+        """
+        return len(self.candidates)
 
     def __post_init__(self):
         """

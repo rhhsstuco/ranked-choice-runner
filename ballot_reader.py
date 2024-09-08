@@ -71,26 +71,25 @@ class BallotReader:
 
                 for name, position_metadata in positions_metadata.items():
                     _check_key_exists_in_config(
-                        "num_candidates",
+                        "candidates",
                         position_metadata,
-                        f"position.{name}.num_candidates",
+                        f"position.{name}.candidates",
                         self.config_filepath
                     )
                     _check_key_exists_in_config(
-                        "num_candidates",
+                        "num_winners",
                         position_metadata,
-                        f"position.{name}.num_candidates",
+                        f"position.{name}.num_winners",
                         self.config_filepath
                     )
 
-                    num_candidates = position_metadata["num_candidates"]
+                    candidates = position_metadata["candidates"]
+                    num_candidates = len(candidates)
 
                     if num_candidates <= 0:
                         raise ValueError(f"Invalid amount of choices ({num_candidates}) for position ({name}).")
 
                     ballot = tuple(row[start:(start + num_candidates)])
-
-                    print(ballot)
 
                     if not all(ballot):
                         start += num_candidates
@@ -116,7 +115,7 @@ class BallotReader:
                 PositionMetadata(
                     name=position,
                     ballots=vote_list[position],
-                    num_candidates=config_dict["positions"][position]["num_candidates"],
+                    candidates=config_dict["positions"][position]["candidates"],
                     num_winners=config_dict["positions"][position]["num_winners"],
                     threshold=threshold
                 )

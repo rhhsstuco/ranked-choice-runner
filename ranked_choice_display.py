@@ -10,29 +10,7 @@ from custom_types import VoteDict, Ballot
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from ranked_choice_runner import RankedChoiceRunner
-
-_TEXT_OFFSET = 20
-_ORDINAL_SUFFIX_LIST = ['th', 'st', 'nd', 'rd', 'th']
-
-
-def _make_ordinal(n: int):
-    """
-    Convert an integer into its ordinal representation.
-
-    make_ordinal(0)   => '0th'
-    make_ordinal(3)   => '3rd'
-    make_ordinal(122) => '122nd'
-    make_ordinal(213) => '213th'
-
-    :param n: the integer to convert.
-    :return: the ordinal representation of ``n``.
-    """
-    if 11 <= (n % 100) <= 13:
-        suffix = 'th'
-    else:
-        suffix = _ORDINAL_SUFFIX_LIST[min(n % 10, 4)]
-
-    return str(n) + suffix
+from utils import make_ordinal
 
 
 def _transform_votes(votes: VoteDict):
@@ -103,7 +81,7 @@ def _display_ballots(candidate: str, ballots: list[Ballot]):
 
     # Construct bars
     for i, key in enumerate(reversed(sorted_keys)):
-        labels.append(f"{_make_ordinal(key)} choice")
+        labels.append(f"{make_ordinal(key)} choice")
 
         # Create bar
         bar = axes.bar(
@@ -119,7 +97,7 @@ def _display_ballots(candidate: str, ballots: list[Ballot]):
         # Computes label value and location
         num_votes = ballots_psa[i] - prev_height
         text_height = ballots_psa[i]
-        axes.text(bar[0].get_x() + bar[0].get_width() / 2., text_height + _TEXT_OFFSET,
+        axes.text(bar[0].get_x() + bar[0].get_width() / 2., text_height,
                   str(num_votes),
                   ha='center', va='bottom')
 
@@ -234,7 +212,7 @@ class _ElectionDisplay:
                 rect.set_color("blue")
 
             height = rect.get_height()
-            textbox = self.axes.text(rect.get_x() + rect.get_width() / 2., height + _TEXT_OFFSET,
+            textbox = self.axes.text(rect.get_x() + rect.get_width() / 2., height,
                                      str(ballot_count),
                                      ha='center', va='bottom')
 
@@ -255,6 +233,11 @@ class _ElectionDisplay:
         subplots: tuple[Figure, Axes] = plt.subplots()
         self.fig, self.axes = subplots
 
+        try:
+            plt.get_current_fig_manager().window.state('zoomed')
+        except RuntimeError:
+            print("An error occurred attempting to maximize the screen")
+
         # Sets graph metadata
         # Sets the y-axis markers to integers only
         self.axes.yaxis.set_major_locator(MaxNLocator(integer=True))
@@ -262,9 +245,11 @@ class _ElectionDisplay:
         plt.ylim([0, self._runner.num_ballots + 1])
 
         # Allocate space for 'next' and 'prev' buttons
-        self.fig.subplots_adjust(bottom=0.2)
+        self.fig.subplots_adjust(bottom=0.25)
         ax_prev = self.fig.add_axes((0.7, 0.05, 0.1, 0.075))
         ax_next = self.fig.add_axes((0.81, 0.05, 0.1, 0.075))
+
+        self.axes.tick_params(axis='x', labelrotation=90)
 
         # Create buttons and attached event listeners
         next_button = Button(ax_next, 'Next')
