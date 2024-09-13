@@ -21,22 +21,22 @@ class RankedChoiceApplication:
     """
     Runs a ranked choice election with a bar chart display.
     """
-    def __init__(self, *,
-                 config_filepath: str,
-                 show_display: bool = True,
-                 ):
+    def __init__(self, *, config_filepath: str):
         """
         :param config_filepath: the filepath to the config JSON file.
-        :param show_display: if the election is graphically displayed or not.
         """
-        self.output_file, self.vote_list = BallotReader(config_filepath).read()
-        self.show_display = show_display
+        election_data = BallotReader(config_filepath).read()
+
+        self.output_file = election_data.metadata.output_file
+        self.num_ballots = election_data.metadata.num_ballots
+        self.show_display = election_data.metadata.show_display
+        self.vote_list = election_data.position_data_list
 
     def run(self):
         """
         Runs all elections for all candidates to completion
         """
-        file_output: list[str] = []
+        file_output: list[str] = [f"Total Ballots: {self.num_ballots}", ""]
 
         for position_metadata in self.vote_list:
             election_runner = RankedChoiceRunner(
@@ -59,7 +59,8 @@ class RankedChoiceApplication:
                     _exhaust(run)
 
             file_output.append(f"Winners for {position_metadata.name} (candidates: {position_metadata.num_winners}; "
-                               f"threshold: {position_metadata.threshold}):")
+                               f"threshold: {position_metadata.threshold},"
+                               f"number of ballots: {len(position_metadata.ballots)}):")
 
             for winner in election_runner.winners:
                 if winner in election_runner.notes:

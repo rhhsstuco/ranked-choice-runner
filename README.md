@@ -36,10 +36,12 @@ The configuration schema is as follows:
     the percentage of votes that defines the majority.
   * Let `N` be the total amount of votes and `n` be the `threshold` value. Then
     `majority = floor(N * n) + 1`.
+* `show_display`: `boolean`
+  * If the election process and results should be displayed
 * `positions`: `object`
   * An object mapping each position name to metadata about the position
     in the following schema:
-  * `candidates`: `number`
+  * `candidates`: `string[]`
     * The list of candidates **running** for this position.
   * `num_winners`: `number`
     * The total number of candidates **required** for this position.
@@ -55,6 +57,7 @@ An example of the schema is given below:
   "source": "data.csv",
   "output": "results.txt",
   "threshold": 0.5,
+  "show_display": true,
   "positions": {
     "President": {
       "candidates": [

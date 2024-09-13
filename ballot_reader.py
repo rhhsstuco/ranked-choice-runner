@@ -1,10 +1,37 @@
 import csv
 import json
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Any, Mapping
 
 from custom_types import Ballot
-from position_metadata import PositionMetadata
+from position_metadata import PositionData
+
+
+@dataclass(frozen=True, kw_only=True)
+class ElectionMetadata:
+    """
+    A dataclass containing parameters and metadata about the election.
+
+    :param output_file: the path of the output file
+    :param num_ballots: the total number of ballots cast
+    :param show_display: if the election results and process should be displayed
+    """
+    output_file: str
+    num_ballots: int
+    show_display: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ElectionData:
+    """
+    A dataclass containing parameters and metadata about the election.
+
+    :param position_data_list: a list of election data per position
+    :param metadata: metadata about the election
+    """
+    position_data_list: list[PositionData]
+    metadata: ElectionMetadata
 
 
 def _check_key_exists_in_config(key: str, mapping: Mapping, key_path: str, config_filepath: str):
@@ -35,12 +62,12 @@ class BallotReader:
         """
         self.config_filepath = config_filepath
 
-    def read(self) -> tuple[str, list[PositionMetadata]]:
+    def read(self):
         """
         Creates a ``BallotReader`` instance for reading ballots.
 
-        :return: a tuple containing the output filepath and a list of ``PositionData`` instances representing the
-        ballots and parameters of the election for a single position.
+        :return: a tuple containing the output filepath, a list of ``PositionData`` instances representing the
+        ballots and parameters of the election for a single position, and the total number of ballots
         """
         with open(self.config_filepath) as file:
             config_dict: dict[str, Any] = json.load(file)
@@ -49,6 +76,7 @@ class BallotReader:
         _check_key_exists_in_config("source", config_dict, "source", self.config_filepath)
         _check_key_exists_in_config("output", config_dict, "output", self.config_filepath)
         _check_key_exists_in_config("threshold", config_dict, "threshold", self.config_filepath)
+        _check_key_exists_in_config("show_display", config_dict, "show_display", self.config_filepath)
         _check_key_exists_in_config("positions", config_dict, "positions", self.config_filepath)
 
         source = config_dict["source"]
@@ -59,6 +87,8 @@ class BallotReader:
         # Mapping of all positions to their ballots
         vote_list: dict[str, list[Ballot]] = defaultdict(list)
 
+        num_ballots = 0
+
         with open(source) as file:
             reader = csv.reader(file, delimiter=",")
 
@@ -68,6 +98,7 @@ class BallotReader:
             # Assign ballots to positions
             for i, row in enumerate(reader):
                 start = 1
+                num_ballots += 1
 
                 for name, position_metadata in positions_metadata.items():
                     _check_key_exists_in_config(
@@ -100,9 +131,10 @@ class BallotReader:
                     start += num_candidates
 
         # List of position metadata
-        position_metadata_list: list[PositionMetadata] = []
+        position_data_list: list[PositionData] = []
 
         global_threshold = float(config_dict["threshold"])
+        show_display = bool(config_dict["show_display"])
 
         for position, ballots in vote_list.items():
             # Reads the election threshold parameter, defaulting to the global value if needed
@@ -111,14 +143,21 @@ class BallotReader:
             else:
                 threshold = global_threshold
 
-            position_metadata_list.append(
-                PositionMetadata(
+            position_data_list.append(
+                PositionData(
                     name=position,
                     ballots=vote_list[position],
                     candidates=config_dict["positions"][position]["candidates"],
-                    num_winners=config_dict["positions"][position]["num_winners"],
+                    num_winners=int(config_dict["positions"][position]["num_winners"]),
                     threshold=threshold
                 )
             )
 
-        return str(config_dict["output"]), position_metadata_list
+        return ElectionData(
+            position_data_list=position_data_list,
+            metadata=ElectionMetadata(
+                output_file=str(config_dict["output"]),
+                num_ballots=num_ballots,
+                show_display=show_display,
+            )
+        )
