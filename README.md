@@ -24,11 +24,15 @@ until the required amount of candidates is selected.
 
 The configuration of the runner is determined using a `config.json` file
 located alongside the `main.py` file. The configuration files specifies
-the path to the input and output file, and metadata about each position.
+the path to the input, reference, output file, and metadata about each position.
 The configuration schema is as follows:
 
 * `source`: `string`
-  * The path to the input `.csv` file.
+  * The path to the input `.csv` file. **View the format down below**.
+  * The source contains the raw ballot information
+* `reference`: `string`
+  * The path to the reference `.csv` file. **View the format down below**.
+  * The reference contains a mapping of emails to grades in order to filter out invalid ballots.
 * `output`: `string`
   * The path to the output `.txt` file.
 * `threshold`: `number`
@@ -55,6 +59,7 @@ An example of the schema is given below:
 ```json5
 {
   "source": "data.csv",
+  "reference": "reference.csv",
   "output": "results.txt",
   "threshold": 0.5,
   "show_display": true,
@@ -93,8 +98,18 @@ An example of the schema is given below:
 The format of the input CSV file is designed to mimic that of Google Forms.
 As such, the format goes as (the header values do not matter):
 
-| Timestamp | Position A (1) | Position A (2) | ... | Position A (n) | Position B (1) | Position B (2) | ... | Position B (n) | ... |
-|-----------|----------------|----------------|-----|----------------|----------------|----------------|-----|----------------|-----|
-| timestamp | Choice 1 for A | Choice 2 for A | ... | Choice n for A | Choice 1 for B | Choice 2 for B | ... | Choice n for B | ... |
-| timestamp | Choice 1 for A | Choice 2 for A | ... | Choice n for A | Choice 1 for B | Choice 3 for B | ... | Choice n for B | ... |
-| ...       | ...            | ...            | ... | ...            | ...            | ...            | ... | ...            | ... |
+| Timestamp | Grade | Position A (1) | Position A (2) | ... | Position A (n) | Position B (1) | Position B (2) | ... | Position B (n) | ... | Email                    |
+|-----------|-------|----------------|----------------|-----|----------------|----------------|----------------|-----|----------------|-----|--------------------------|
+| timestamp | 11    | Choice 1 for A | Choice 2 for A | ... | Choice n for A | Choice 1 for B | Choice 2 for B | ... | Choice n for B | ... | _________@gapps.yrdsb.ca |
+| timestamp | 9     | Choice 1 for A | Choice 2 for A | ... | Choice n for A | Choice 1 for B | Choice 3 for B | ... | Choice n for B | ... | _________@gapps.yrdsb.ca |
+| ...       |       | ...            | ...            | ... | ...            | ...            | ...            | ... | ...            | ... |                          |
+
+## Reference Format
+
+The format of the reference CSV file goes as (the header values do not matter):
+
+| Email                    | Grade |
+|--------------------------|-------|
+| _________@gapps.yrdsb.ca | 11    |
+| _________@gapps.yrdsb.ca | 9     |
+| ...                      | ...   |

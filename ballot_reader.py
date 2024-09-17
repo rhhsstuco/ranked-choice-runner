@@ -1,37 +1,11 @@
 import csv
 import json
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import Any, Mapping
 
 from custom_types import Ballot
-from position_metadata import PositionData
-
-
-@dataclass(frozen=True, kw_only=True)
-class ElectionMetadata:
-    """
-    A dataclass containing parameters and metadata about the election.
-
-    :param output_file: the path of the output file
-    :param num_ballots: the total number of ballots cast
-    :param show_display: if the election results and process should be displayed
-    """
-    output_file: str
-    num_ballots: int
-    show_display: bool
-
-
-@dataclass(frozen=True, kw_only=True)
-class ElectionData:
-    """
-    A dataclass containing parameters and metadata about the election.
-
-    :param position_data_list: a list of election data per position
-    :param metadata: metadata about the election
-    """
-    position_data_list: list[PositionData]
-    metadata: ElectionMetadata
+from election_data import ElectionData, ElectionMetadata
+from position_data import PositionData
 
 
 def _check_key_exists_in_config(key: str, mapping: Mapping, key_path: str, config_filepath: str):
@@ -74,6 +48,7 @@ class BallotReader:
 
         # Check for key existence
         _check_key_exists_in_config("source", config_dict, "source", self.config_filepath)
+        _check_key_exists_in_config("reference", config_dict, "reference", self.config_filepath)
         _check_key_exists_in_config("output", config_dict, "output", self.config_filepath)
         _check_key_exists_in_config("threshold", config_dict, "threshold", self.config_filepath)
         _check_key_exists_in_config("show_display", config_dict, "show_display", self.config_filepath)
@@ -87,7 +62,23 @@ class BallotReader:
         # Mapping of all positions to their ballots
         vote_list: dict[str, list[Ballot]] = defaultdict(list)
 
+        # Filtering invalid votes
+        reference = config_dict["reference"]
+
+        email_grade_reference: dict[str, int] = {}
+
+        with open(reference) as file:
+            reader = csv.reader(file, delimiter=",")
+
+            # Skip the headers
+            next(reader, None)
+
+            for row in reader:
+                email_grade_reference[row[0]] = int(row[1])
+
         num_ballots = 0
+
+        invalid_ballots: dict[str, int] = defaultdict(int)
 
         with open(source) as file:
             reader = csv.reader(file, delimiter=",")
@@ -97,7 +88,24 @@ class BallotReader:
 
             # Assign ballots to positions
             for i, row in enumerate(reader):
-                start = 1
+                start = 2
+
+                grade = int(row[1])
+                email = row[-1]
+
+                # Check for invalid ballots
+                if not 9 <= grade <= 12:
+                    invalid_ballots["Invalid Grade"] += 1
+                    continue
+
+                if email not in email_grade_reference:
+                    invalid_ballots["Student Not Found"] += 1
+                    continue
+
+                if email_grade_reference[email] != grade:
+                    invalid_ballots["Grade Mismatch"] += 1
+                    continue
+
                 num_ballots += 1
 
                 for name, position_metadata in positions_metadata.items():
@@ -155,6 +163,7 @@ class BallotReader:
 
         return ElectionData(
             position_data_list=position_data_list,
+            invalid_ballots=invalid_ballots,
             metadata=ElectionMetadata(
                 output_file=str(config_dict["output"]),
                 num_ballots=num_ballots,

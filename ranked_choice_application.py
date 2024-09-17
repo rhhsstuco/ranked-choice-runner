@@ -31,12 +31,23 @@ class RankedChoiceApplication:
         self.num_ballots = election_data.metadata.num_ballots
         self.show_display = election_data.metadata.show_display
         self.vote_list = election_data.position_data_list
+        self.invalid_ballots = election_data.invalid_ballots
+        self.invalid_ballots_count = sum(self.invalid_ballots.values())
 
     def run(self):
         """
         Runs all elections for all candidates to completion
         """
-        file_output: list[str] = [f"Total Ballots: {self.num_ballots}", ""]
+        file_output: list[str] = [
+            f"Total Ballots: {self.num_ballots}",
+            "",
+            f"Invalid Ballots: {self.invalid_ballots_count}",
+        ]
+
+        for key, value in self.invalid_ballots.items():
+            file_output.append(f"\t{key}: {value}")
+
+        file_output.append("")
 
         for position_metadata in self.vote_list:
             election_runner = RankedChoiceRunner(
