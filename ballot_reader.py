@@ -48,7 +48,6 @@ class BallotReader:
 
         # Check for key existence
         _check_key_exists_in_config("source", config_dict, "source", self.config_filepath)
-        _check_key_exists_in_config("reference", config_dict, "reference", self.config_filepath)
         _check_key_exists_in_config("output", config_dict, "output", self.config_filepath)
         _check_key_exists_in_config("threshold", config_dict, "threshold", self.config_filepath)
         _check_key_exists_in_config("show_display", config_dict, "show_display", self.config_filepath)
@@ -62,23 +61,24 @@ class BallotReader:
         # Mapping of all positions to their ballots
         vote_list: dict[str, list[Ballot]] = defaultdict(list)
 
-        # Filtering invalid votes
-        reference = config_dict["reference"]
-
         email_grade_reference: dict[str, int] = {}
 
-        with open(reference) as file:
-            reader = csv.reader(file, delimiter=",")
+        if "reference" in config_dict:
+            # Filtering invalid votes
+            reference = config_dict["reference"]
 
-            # Skip the headers
-            next(reader, None)
+            with open(reference) as file:
+                reader = csv.reader(file, delimiter=",")
 
-            for row in reader:
-                email_grade_reference[row[0]] = int(row[1])
+                # Skip the headers
+                next(reader, None)
+
+                for row in reader:
+                    email_grade_reference[row[0]] = int(row[1])
 
         num_ballots = 0
 
-        invalid_ballots: dict[str, int] = defaultdict(int)
+        invalid_ballots: dict[str, int] = defaultdict(int) if "reference" in config_dict else None
 
         with open(source) as file:
             reader = csv.reader(file, delimiter=",")
@@ -88,23 +88,24 @@ class BallotReader:
 
             # Assign ballots to positions
             for i, row in enumerate(reader):
-                start = 2
+                start = 2 if "reference" in config_dict else 1
 
-                grade = int(row[1])
-                email = row[-1]
+                if "reference" in config_dict:
+                    grade = int(row[1])
+                    email = row[-1]
 
-                # Check for invalid ballots
-                if not 9 <= grade <= 12:
-                    invalid_ballots["Invalid Grade"] += 1
-                    continue
+                    # Check for invalid ballots
+                    if not 9 <= grade <= 12:
+                        invalid_ballots["Invalid Grade"] += 1
+                        continue
 
-                if email not in email_grade_reference:
-                    invalid_ballots["Student Not Found"] += 1
-                    continue
+                    if email not in email_grade_reference:
+                        invalid_ballots["Student Not Found"] += 1
+                        continue
 
-                if email_grade_reference[email] != grade:
-                    invalid_ballots["Grade Mismatch"] += 1
-                    continue
+                    if email_grade_reference[email] != grade:
+                        invalid_ballots["Grade Mismatch"] += 1
+                        continue
 
                 num_ballots += 1
 

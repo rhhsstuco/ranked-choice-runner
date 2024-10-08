@@ -30,9 +30,10 @@ The configuration schema is as follows:
 * `source`: `string`
   * The path to the input `.csv` file. **View the format down below**.
   * The source contains the raw ballot information
-* `reference`: `string`
+* `[reference]`: `string (optional)`
   * The path to the reference `.csv` file. **View the format down below**.
   * The reference contains a mapping of emails to grades in order to filter out invalid ballots.
+  * If omitted, the program will not perform filtering, and the grade and email columns in the input format below should be removed.
 * `output`: `string`
   * The path to the output `.txt` file.
 * `threshold`: `number`
