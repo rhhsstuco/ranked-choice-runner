@@ -42,7 +42,7 @@ The configuration schema is as follows:
   * Let `N` be the total amount of votes and `n` be the `threshold` value. Then
     `majority = floor(N * n) + 1`.
 * `show_display`: `boolean`
-  * If the election process and results should be displayed
+  * If the election process and results should be displayed visually
 * `positions`: `object`
   * An object mapping each position name to metadata about the position
     in the following schema:
