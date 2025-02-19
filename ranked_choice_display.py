@@ -1,5 +1,7 @@
 from collections import defaultdict
+import platform
 
+from matplotlib import use
 from matplotlib.axes import Axes
 from matplotlib.backend_bases import Event
 from matplotlib.figure import Figure
@@ -11,6 +13,10 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 from ranked_choice_runner import RankedChoiceRunner
 from utils import make_ordinal
+
+# Mac
+if platform.system() == "Darwin":
+    use('TkAgg')
 
 
 def _transform_votes(votes: VoteDict):
