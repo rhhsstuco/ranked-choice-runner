@@ -240,7 +240,9 @@ class _ElectionDisplay:
         self.fig, self.axes = subplots
 
         try:
-            plt.get_current_fig_manager().window.state('zoomed')
+            self.fig.canvas.manager.full_screen_toggle()
+            manager = plt.get_current_fig_manager()
+            manager.window.state('zoomed')
         except RuntimeError:
             print("An error occurred attempting to maximize the screen")
 
